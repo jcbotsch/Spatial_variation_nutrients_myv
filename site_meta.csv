@@ -1,0 +1,12 @@
+﻿site,long_name,basin,lat,lon,depth
+e1,Emergence Site 1,s,0405954,7274515,2.7
+e2,Emergence Site 2,s,0406276,7278009,2.7
+st33,Station 33,s,0407635,7276128,3.3
+e4,Emergence Site 4,s,0407649,7278586,2.9
+e5,Emergence Site 5,s,0409775,7276396,2.5
+e6,Emergence Site 6,s,0408985,7274409,2.8
+cs,Cold Springs,s,,,
+reyk,Reykjahlid,n,0411395,7281206,4.3
+grim,Grimmstadir,n,0409991,7282200,6.5
+btl,Boat Launch,s,,,
+buck,Bucket Test in Lab,NA,,,

@@ -1,0 +1,361 @@
+vial,spot,layer,analyte,mgl
+356-21,2,Int,Ammonium and ammonia mg/l,0.99
+371-21,17,Int,Ammonium and ammonia mg/l,5.9
+368-21,14,Int,Ammonium and ammonia mg/l,3.4
+373-21,19,Int,Ammonium and ammonia mg/l,7.7
+379-21,15,Int,Ammonium and ammonia mg/l,1.8
+379-21,25,Int,Ammonium and ammonia mg/l,1.8
+376-21,22,Int,Ammonium and ammonia mg/l,1.6
+365-21,11,Int,Ammonium and ammonia mg/l,0.83
+370-21,16,Int,Ammonium and ammonia mg/l,1.9
+385-21,31,Int,Ammonium and ammonia mg/l,1.1
+357-21,3,Int,Ammonium and ammonia mg/l,2.1
+366-21,12,Int,Ammonium and ammonia mg/l,1.5
+382-21,28,Int,Ammonium and ammonia mg/l,0.61
+362-21,8,Int,Ammonium and ammonia mg/l,0.65
+378-21,24,Int,Ammonium and ammonia mg/l,0.58
+383-21,29,Int,Ammonium and ammonia mg/l,1.1
+380-21,26,Int,Ammonium and ammonia mg/l,4.7
+359-21,5,Int,Ammonium and ammonia mg/l,1.4
+367-21,13,Int,Ammonium and ammonia mg/l,11
+372-21,18,Int,Ammonium and ammonia mg/l,4.2
+374-21,20,Int,Ammonium and ammonia mg/l,3.6
+364-21,10,Int,Ammonium and ammonia mg/l,1.2
+355-21,1,Int,Ammonium and ammonia mg/l,4.7
+377-21,23,Int,Ammonium and ammonia mg/l,12
+360-21,6,Int,Ammonium and ammonia mg/l,1.1
+363-21,9,Int,Ammonium and ammonia mg/l,1.5
+375-21,21,Int,Ammonium and ammonia mg/l,8.2
+361-21,7,Int,Ammonium and ammonia mg/l,1.2
+358-21,4,Int,Ammonium and ammonia mg/l,1.8
+384-21,30,Int,Ammonium and ammonia mg/l,5.2
+344-21,22,Pel,Ammonium and ammonia mg/l,0.026
+341-21,19,Pel,Ammonium and ammonia mg/l,0.064
+350-21,28,Pel,Ammonium and ammonia mg/l,0.021
+343-21,21,Pel,Ammonium and ammonia mg/l,0.023
+351-21,29,Pel,Ammonium and ammonia mg/l,0.021
+353-21,31,Pel,Ammonium and ammonia mg/l,0.023
+346-21,24,Pel,Ammonium and ammonia mg/l,0.061
+331-21,9,Pel,Ammonium and ammonia mg/l,0.022
+348-21,26,Pel,Ammonium and ammonia mg/l,0.047
+347-21,25,Pel,Ammonium and ammonia mg/l,0.03
+332-21,10,Pel,Ammonium and ammonia mg/l,0.013
+330-21,8,Pel,Ammonium and ammonia mg/l,0.011
+333-21,11,Pel,Ammonium and ammonia mg/l,0.029
+342-21,20,Pel,Ammonium and ammonia mg/l,0.024
+327-21,5,Pel,Ammonium and ammonia mg/l,0.065
+329-21,7,Pel,Ammonium and ammonia mg/l,0.02
+352-21,30,Pel,Ammonium and ammonia mg/l,0.013
+334-21,12,Pel,Ammonium and ammonia mg/l,0.024
+324-21,2,Pel,Ammonium and ammonia mg/l,0.017
+335-21,13,Pel,Ammonium and ammonia mg/l,0.025
+340-21,18,Pel,Ammonium and ammonia mg/l,0.063
+339-21,17,Pel,Ammonium and ammonia mg/l,0.088
+326-21,4,Pel,Ammonium and ammonia mg/l,0.017
+323-21,1,Pel,Ammonium and ammonia mg/l,0.011
+336-21,14,Pel,Ammonium and ammonia mg/l,0.077
+345-21,23,Pel,Ammonium and ammonia mg/l,0.018
+337-21,15,Pel,Ammonium and ammonia mg/l,0.058
+328-21,6,Pel,Ammonium and ammonia mg/l,0.037
+325-21,3,Pel,Ammonium and ammonia mg/l,0.053
+338-21,16,Pel,Ammonium and ammonia mg/l,0.12
+356-21,2,Int,NO2 mg/l,0.017
+371-21,17,Int,NO2 mg/l,0.015
+368-21,14,Int,NO2 mg/l,0.027
+373-21,19,Int,NO2 mg/l,0.046
+379-21,15,Int,NO2 mg/l,0.038
+379-21,25,Int,NO2 mg/l,0.038
+376-21,22,Int,NO2 mg/l,0.04
+365-21,11,Int,NO2 mg/l,0.02
+370-21,16,Int,NO2 mg/l,0.02
+385-21,31,Int,NO2 mg/l,0.043
+357-21,3,Int,NO2 mg/l,0.028
+366-21,12,Int,NO2 mg/l,0.025
+382-21,28,Int,NO2 mg/l,0.023
+362-21,8,Int,NO2 mg/l,0.016
+378-21,24,Int,NO2 mg/l,0.025
+383-21,29,Int,NO2 mg/l,0.023
+380-21,26,Int,NO2 mg/l,0.028
+359-21,5,Int,NO2 mg/l,0.024
+367-21,13,Int,NO2 mg/l,0.044
+372-21,18,Int,NO2 mg/l,0.035
+374-21,20,Int,NO2 mg/l,0.043
+364-21,10,Int,NO2 mg/l,0.037
+355-21,1,Int,NO2 mg/l,0.035
+377-21,23,Int,NO2 mg/l,0.051
+360-21,6,Int,NO2 mg/l,0.023
+363-21,9,Int,NO2 mg/l,0.025
+375-21,21,Int,NO2 mg/l,0.027
+361-21,7,Int,NO2 mg/l,0.026
+358-21,4,Int,NO2 mg/l,0.039
+384-21,30,Int,NO2 mg/l,0.049
+344-21,22,Pel,NO2 mg/l,7e-4
+341-21,19,Pel,NO2 mg/l,8.4e-4
+350-21,28,Pel,NO2 mg/l,0.0016
+343-21,21,Pel,NO2 mg/l,0.0017
+351-21,29,Pel,NO2 mg/l,0.0011
+353-21,31,Pel,NO2 mg/l,0.0021
+346-21,24,Pel,NO2 mg/l,0.0026
+331-21,9,Pel,NO2 mg/l,9.5e-4
+348-21,26,Pel,NO2 mg/l,0.0013
+347-21,25,Pel,NO2 mg/l,9.2e-4
+332-21,10,Pel,NO2 mg/l,4.1e-4
+330-21,8,Pel,NO2 mg/l,7.3e-4
+333-21,11,Pel,NO2 mg/l,8e-4
+342-21,20,Pel,NO2 mg/l,NA
+327-21,5,Pel,NO2 mg/l,5.2e-4
+329-21,7,Pel,NO2 mg/l,NA
+352-21,30,Pel,NO2 mg/l,0.0012
+334-21,12,Pel,NO2 mg/l,0.0014
+324-21,2,Pel,NO2 mg/l,0.0014
+335-21,13,Pel,NO2 mg/l,8.5e-4
+340-21,18,Pel,NO2 mg/l,0.0017
+339-21,17,Pel,NO2 mg/l,8.6e-4
+326-21,4,Pel,NO2 mg/l,0.0012
+323-21,1,Pel,NO2 mg/l,0.0012
+336-21,14,Pel,NO2 mg/l,0.0017
+345-21,23,Pel,NO2 mg/l,NA
+337-21,15,Pel,NO2 mg/l,0.0014
+328-21,6,Pel,NO2 mg/l,6e-4
+325-21,3,Pel,NO2 mg/l,0.0021
+338-21,16,Pel,NO2 mg/l,5.9e-4
+356-21,2,Int,NO3 mg/l,0.06
+371-21,17,Int,NO3 mg/l,0.02
+368-21,14,Int,NO3 mg/l,0.02
+373-21,19,Int,NO3 mg/l,0.055
+379-21,15,Int,NO3 mg/l,0.46
+379-21,25,Int,NO3 mg/l,0.46
+376-21,22,Int,NO3 mg/l,NA
+365-21,11,Int,NO3 mg/l,0.098
+370-21,16,Int,NO3 mg/l,0.035
+385-21,31,Int,NO3 mg/l,0.25
+357-21,3,Int,NO3 mg/l,0.097
+366-21,12,Int,NO3 mg/l,0.19
+382-21,28,Int,NO3 mg/l,NA
+362-21,8,Int,NO3 mg/l,0.026
+378-21,24,Int,NO3 mg/l,0.064
+383-21,29,Int,NO3 mg/l,0.15
+380-21,26,Int,NO3 mg/l,0.22
+359-21,5,Int,NO3 mg/l,0.068
+367-21,13,Int,NO3 mg/l,NA
+372-21,18,Int,NO3 mg/l,0.22
+374-21,20,Int,NO3 mg/l,0.16
+364-21,10,Int,NO3 mg/l,0.06
+355-21,1,Int,NO3 mg/l,0.1
+377-21,23,Int,NO3 mg/l,0.064
+360-21,6,Int,NO3 mg/l,0.11
+363-21,9,Int,NO3 mg/l,0.019
+375-21,21,Int,NO3 mg/l,0.21
+361-21,7,Int,NO3 mg/l,0.065
+358-21,4,Int,NO3 mg/l,0.13
+384-21,30,Int,NO3 mg/l,0.084
+344-21,22,Pel,NO3 mg/l,NA
+341-21,19,Pel,NO3 mg/l,0.0026
+350-21,28,Pel,NO3 mg/l,NA
+343-21,21,Pel,NO3 mg/l,NA
+351-21,29,Pel,NO3 mg/l,NA
+353-21,31,Pel,NO3 mg/l,NA
+346-21,24,Pel,NO3 mg/l,0.0023
+331-21,9,Pel,NO3 mg/l,NA
+348-21,26,Pel,NO3 mg/l,NA
+347-21,25,Pel,NO3 mg/l,NA
+332-21,10,Pel,NO3 mg/l,NA
+330-21,8,Pel,NO3 mg/l,NA
+333-21,11,Pel,NO3 mg/l,0.002
+342-21,20,Pel,NO3 mg/l,NA
+327-21,5,Pel,NO3 mg/l,NA
+329-21,7,Pel,NO3 mg/l,NA
+352-21,30,Pel,NO3 mg/l,NA
+334-21,12,Pel,NO3 mg/l,NA
+324-21,2,Pel,NO3 mg/l,NA
+335-21,13,Pel,NO3 mg/l,NA
+340-21,18,Pel,NO3 mg/l,NA
+339-21,17,Pel,NO3 mg/l,NA
+326-21,4,Pel,NO3 mg/l,NA
+323-21,1,Pel,NO3 mg/l,NA
+336-21,14,Pel,NO3 mg/l,NA
+345-21,23,Pel,NO3 mg/l,NA
+337-21,15,Pel,NO3 mg/l,NA
+328-21,6,Pel,NO3 mg/l,NA
+325-21,3,Pel,NO3 mg/l,NA
+338-21,16,Pel,NO3 mg/l,NA
+356-21,2,Int,Total P mg/l,0.51
+371-21,17,Int,Total P mg/l,2.2
+368-21,14,Int,Total P mg/l,0.95
+373-21,19,Int,Total P mg/l,2.9
+379-21,15,Int,Total P mg/l,0.48
+379-21,25,Int,Total P mg/l,0.48
+376-21,22,Int,Total P mg/l,0.94
+365-21,11,Int,Total P mg/l,0.16
+370-21,16,Int,Total P mg/l,0.32
+385-21,31,Int,Total P mg/l,0.096
+357-21,3,Int,Total P mg/l,0.3
+366-21,12,Int,Total P mg/l,0.25
+382-21,28,Int,Total P mg/l,0.06
+362-21,8,Int,Total P mg/l,0.14
+378-21,24,Int,Total P mg/l,1.3
+383-21,29,Int,Total P mg/l,0.14
+380-21,26,Int,Total P mg/l,1
+359-21,5,Int,Total P mg/l,0.26
+367-21,13,Int,Total P mg/l,4.4
+372-21,18,Int,Total P mg/l,1.2
+374-21,20,Int,Total P mg/l,2.4
+364-21,10,Int,Total P mg/l,0.29
+355-21,1,Int,Total P mg/l,1.3
+377-21,23,Int,Total P mg/l,0.62
+360-21,6,Int,Total P mg/l,0.42
+363-21,9,Int,Total P mg/l,1.6
+375-21,21,Int,Total P mg/l,4.9
+361-21,7,Int,Total P mg/l,0.61
+358-21,4,Int,Total P mg/l,1.4
+384-21,30,Int,Total P mg/l,1.2
+344-21,22,Pel,Total P mg/l,0.004
+341-21,19,Pel,Total P mg/l,0.006
+350-21,28,Pel,Total P mg/l,0.008
+343-21,21,Pel,Total P mg/l,0.003
+351-21,29,Pel,Total P mg/l,0.01
+353-21,31,Pel,Total P mg/l,0.021
+346-21,24,Pel,Total P mg/l,0.008
+331-21,9,Pel,Total P mg/l,0.008
+348-21,26,Pel,Total P mg/l,0.016
+347-21,25,Pel,Total P mg/l,0.018
+332-21,10,Pel,Total P mg/l,0.008
+330-21,8,Pel,Total P mg/l,0.007
+333-21,11,Pel,Total P mg/l,0.004
+342-21,20,Pel,Total P mg/l,0.003
+327-21,5,Pel,Total P mg/l,0.01
+329-21,7,Pel,Total P mg/l,0.008
+352-21,30,Pel,Total P mg/l,0.034
+334-21,12,Pel,Total P mg/l,0.007
+324-21,2,Pel,Total P mg/l,0.008
+335-21,13,Pel,Total P mg/l,0.007
+340-21,18,Pel,Total P mg/l,0.011
+339-21,17,Pel,Total P mg/l,0.011
+326-21,4,Pel,Total P mg/l,0.009
+323-21,1,Pel,Total P mg/l,0.018
+336-21,14,Pel,Total P mg/l,0.013
+345-21,23,Pel,Total P mg/l,0.004
+337-21,15,Pel,Total P mg/l,0.008
+328-21,6,Pel,Total P mg/l,0.008
+325-21,3,Pel,Total P mg/l,0.013
+338-21,16,Pel,Total P mg/l,0.023
+356-21,2,Int,Orthophosphate mg/l,0.6
+371-21,17,Int,Orthophosphate mg/l,2.6
+368-21,14,Int,Orthophosphate mg/l,1
+373-21,19,Int,Orthophosphate mg/l,3.1
+379-21,15,Int,Orthophosphate mg/l,0.5
+379-21,25,Int,Orthophosphate mg/l,0.5
+376-21,22,Int,Orthophosphate mg/l,1.1
+365-21,11,Int,Orthophosphate mg/l,0.075
+370-21,16,Int,Orthophosphate mg/l,0.47
+385-21,31,Int,Orthophosphate mg/l,0.12
+357-21,3,Int,Orthophosphate mg/l,0.37
+366-21,12,Int,Orthophosphate mg/l,0.33
+382-21,28,Int,Orthophosphate mg/l,0.071
+362-21,8,Int,Orthophosphate mg/l,0.14
+378-21,24,Int,Orthophosphate mg/l,0.61
+383-21,29,Int,Orthophosphate mg/l,0.18
+380-21,26,Int,Orthophosphate mg/l,1.2
+359-21,5,Int,Orthophosphate mg/l,0.31
+367-21,13,Int,Orthophosphate mg/l,4.9
+372-21,18,Int,Orthophosphate mg/l,1.3
+374-21,20,Int,Orthophosphate mg/l,2.7
+364-21,10,Int,Orthophosphate mg/l,0.27
+355-21,1,Int,Orthophosphate mg/l,1.4
+377-21,23,Int,Orthophosphate mg/l,0.17
+360-21,6,Int,Orthophosphate mg/l,0.47
+363-21,9,Int,Orthophosphate mg/l,1.3
+375-21,21,Int,Orthophosphate mg/l,5.4
+361-21,7,Int,Orthophosphate mg/l,0.47
+358-21,4,Int,Orthophosphate mg/l,1
+384-21,30,Int,Orthophosphate mg/l,1.4
+344-21,22,Pel,Orthophosphate mg/l,0.0018
+341-21,19,Pel,Orthophosphate mg/l,0.0036
+350-21,28,Pel,Orthophosphate mg/l,0.0039
+343-21,21,Pel,Orthophosphate mg/l,0.0014
+351-21,29,Pel,Orthophosphate mg/l,0.0042
+353-21,31,Pel,Orthophosphate mg/l,0.016
+346-21,24,Pel,Orthophosphate mg/l,0.0033
+331-21,9,Pel,Orthophosphate mg/l,NA
+348-21,26,Pel,Orthophosphate mg/l,0.0091
+347-21,25,Pel,Orthophosphate mg/l,0.018
+332-21,10,Pel,Orthophosphate mg/l,NA
+330-21,8,Pel,Orthophosphate mg/l,0.0014
+333-21,11,Pel,Orthophosphate mg/l,0.002
+342-21,20,Pel,Orthophosphate mg/l,0.0018
+327-21,5,Pel,Orthophosphate mg/l,0.003
+329-21,7,Pel,Orthophosphate mg/l,NA
+352-21,30,Pel,Orthophosphate mg/l,0.036
+334-21,12,Pel,Orthophosphate mg/l,0.0025
+324-21,2,Pel,Orthophosphate mg/l,NA
+335-21,13,Pel,Orthophosphate mg/l,NA
+340-21,18,Pel,Orthophosphate mg/l,0.0035
+339-21,17,Pel,Orthophosphate mg/l,0.0035
+326-21,4,Pel,Orthophosphate mg/l,0.0016
+323-21,1,Pel,Orthophosphate mg/l,0.0036
+336-21,14,Pel,Orthophosphate mg/l,0.002
+345-21,23,Pel,Orthophosphate mg/l,0.0043
+337-21,15,Pel,Orthophosphate mg/l,0.0032
+328-21,6,Pel,Orthophosphate mg/l,0.0023
+325-21,3,Pel,Orthophosphate mg/l,0.0023
+338-21,16,Pel,Orthophosphate mg/l,0.015
+356-21,2,Int,Total N mg/l,1.2
+371-21,17,Int,Total N mg/l,5.1
+368-21,14,Int,Total N mg/l,3.3
+373-21,19,Int,Total N mg/l,6.7
+379-21,15,Int,Total N mg/l,5.1
+379-21,25,Int,Total N mg/l,5.1
+376-21,22,Int,Total N mg/l,2.1
+365-21,11,Int,Total N mg/l,0.79
+370-21,16,Int,Total N mg/l,1.1
+385-21,31,Int,Total N mg/l,2
+357-21,3,Int,Total N mg/l,1.6
+366-21,12,Int,Total N mg/l,1.5
+382-21,28,Int,Total N mg/l,1.8
+362-21,8,Int,Total N mg/l,4.6
+378-21,24,Int,Total N mg/l,1.7
+383-21,29,Int,Total N mg/l,2.3
+380-21,26,Int,Total N mg/l,4.7
+359-21,5,Int,Total N mg/l,2.8
+367-21,13,Int,Total N mg/l,11
+372-21,18,Int,Total N mg/l,4.1
+374-21,20,Int,Total N mg/l,4
+364-21,10,Int,Total N mg/l,4
+355-21,1,Int,Total N mg/l,4.7
+377-21,23,Int,Total N mg/l,13
+360-21,6,Int,Total N mg/l,1.7
+363-21,9,Int,Total N mg/l,7
+375-21,21,Int,Total N mg/l,9.1
+361-21,7,Int,Total N mg/l,1.8
+358-21,4,Int,Total N mg/l,1.4
+384-21,30,Int,Total N mg/l,5.8
+344-21,22,Pel,Total N mg/l,0.21
+341-21,19,Pel,Total N mg/l,0.3
+350-21,28,Pel,Total N mg/l,0.27
+343-21,21,Pel,Total N mg/l,0.29
+351-21,29,Pel,Total N mg/l,0.21
+353-21,31,Pel,Total N mg/l,0.31
+346-21,24,Pel,Total N mg/l,0.35
+331-21,9,Pel,Total N mg/l,0.28
+348-21,26,Pel,Total N mg/l,0.33
+347-21,25,Pel,Total N mg/l,0.28
+332-21,10,Pel,Total N mg/l,0.25
+330-21,8,Pel,Total N mg/l,0.28
+333-21,11,Pel,Total N mg/l,0.23
+342-21,20,Pel,Total N mg/l,0.18
+327-21,5,Pel,Total N mg/l,0.36
+329-21,7,Pel,Total N mg/l,0.28
+352-21,30,Pel,Total N mg/l,0.11
+334-21,12,Pel,Total N mg/l,0.33
+324-21,2,Pel,Total N mg/l,0.31
+335-21,13,Pel,Total N mg/l,0.29
+340-21,18,Pel,Total N mg/l,0.39
+339-21,17,Pel,Total N mg/l,0.38
+326-21,4,Pel,Total N mg/l,0.25
+323-21,1,Pel,Total N mg/l,0.39
+336-21,14,Pel,Total N mg/l,0.41
+345-21,23,Pel,Total N mg/l,0.2
+337-21,15,Pel,Total N mg/l,0.34
+328-21,6,Pel,Total N mg/l,0.27
+325-21,3,Pel,Total N mg/l,0.4
+338-21,16,Pel,Total N mg/l,0.57
