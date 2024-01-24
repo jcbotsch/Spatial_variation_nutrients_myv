@@ -1,8 +1,8 @@
 #====Load Packages====
 library(tidyverse)
-library(sf)
-library(rgdal)
 library(ggspatial)
+library(tidyterra)
+library(terra)
 library(cowplot)
 library(scatterpie)
 library(lubridate)
@@ -22,29 +22,29 @@ ggpreview <- function(...) {
 
 #Read Iceland from data downloaded from here: https://atlas.lmi.is/LmiData/index.php?id=3399612930 
 #Downloaded IS 50V 17/06 2018 Strandlina. GDB and SHP. ISN 2004
-icelandshp_sf <- st_read("map/IS50V_STRANDLINA_17062019_ISN2004/IS50V_STRANDLINA_SHP/is50v_strandlina_linur_17062019.shp")
+# icelandshp_sf <- st_read("map/IS50V_STRANDLINA_17062019_ISN2004/IS50V_STRANDLINA_SHP/is50v_strandlina_linur_17062019.shp")
 
 #sf seems to produce better maps than using rgdal imported data, 
 #but to get the CRS in a comparable format, use readOGR
 #same data
-icelandshp <- readOGR("map/IS50V_STRANDLINA_17062019_ISN2004/IS50V_STRANDLINA_SHP/is50v_strandlina_linur_17062019.shp")
+icelandshp <- vect("map/IS50V_STRANDLINA_17062019_ISN2004/IS50V_STRANDLINA_SHP/is50v_strandlina_linur_17062019.shp")
 
 #extract Coordinate Reference System (CRS)
-ISCRS <- proj4string(icelandshp)
+ISCRS <- crs(icelandshp)
 
 #read in Myvatn shapefile (Lacks CRS in metadata)
-myvatnshp <- rgdal::readOGR("map/Myvatn fixed/Myvatn_fixed.shp") 
+myvatnshp <- vect("map/Myvatn fixed/Myvatn_fixed.shp") 
 
 #set CRS with known epsg for the data
-proj4string(myvatnshp) <- CRS("+init=epsg:32628")
+crs(myvatnshp) <- crs("+init=epsg:32628")
 
-#convert the CRS to match the Iceland file to plot together
-new <- spTransform(myvatnshp, CRS(ISCRS))
+# #convert the CRS to match the Iceland file to plot together
+# new <- spTransform(myvatnshp, CRS(ISCRS))
 
 
 
 #=====Load data====
-file <- "Lattice_MASTER_13Jun22.xlsx"
+file <- "Lattice_MASTER_19Jan24.xlsx"
 
 grid_sites <- readxl::read_xlsx(file, sheet ="Coordinates", na = "NA") %>%  mutate(year = year(sampledate),
                                                                               spot2021 = ifelse(year == 2021, spot,
@@ -56,14 +56,14 @@ cm <- readxl::read_xlsx(file, sheet = "chiro_measures", na = "NA")
 bt <- readxl::read_xlsx(file, sheet = "benthotorch", na = "NA")
 zoops <-  readxl::read_xlsx(file, sheet = "zooplankton", na = "NA")
 esites <- read_csv("site_meta.csv", col_types =  ("cccddd"))
-nutrients <- read_csv("Lattice_nutrients_long_2021.csv")
+nutrients <- readxl::read_xlsx(file, sheet = "nutrients", na = "NA")
 
 #====Plot spot locations====
 
 #site names
 grid_sites %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_text(aes(easting, northing, label = spot))+
   coord_sf()+
@@ -75,14 +75,13 @@ grid_sites %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
   scale_color_viridis_c()+
   NULL
 
 #sampling date
 grid_sites %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = sampledate))+
   facet_wrap(~year)+
@@ -96,14 +95,14 @@ grid_sites %>%
         legend.position = "top",
         legend.title = element_blank(),
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   NULL
 
 
 
 grid_sites %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", data = myvatnshp)+
   geom_point(aes(easting, northing))+
   geom_text(aes(lat, lon, label = site, color = site), size = 5, data = esites %>% mutate(site = str_remove(site, "e"), site=  str_remove(site, "st")) %>% filter(!is.na(as.numeric(site))))+
   # geom_text(aes(easting, northing, label = spot))+
@@ -116,7 +115,7 @@ grid_sites %>%
         axis.ticks = element_blank(),
         legend.position = "none",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_brewer(palette= "Dark2")+
   NULL
 
@@ -127,7 +126,7 @@ ggpreview(last_plot(), dpi = 650, width = 3, height = 4, units = "in")
 #Qualitative Sediment Characteristics
 grid_sites %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   facet_wrap(~lubridate::year(sampledate))+
   geom_point(aes(easting, northing, color = sed_type), size = 3)+
@@ -141,7 +140,7 @@ grid_sites %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   NULL
 ggpreview(last_plot(), dpi = 650, width = 5, height = 4, units = "in")
 
@@ -216,10 +215,11 @@ limno %>%
             median = median(wtemp),
             sd = sd(wtemp))
 
+
 #depth
 limno %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = depth))+
   facet_wrap(~lubridate::year(sampledate))+
@@ -232,7 +232,7 @@ limno %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_gradient(low = "white", high = "black")+
   NULL
 ggpreview(last_plot(), dpi = 650, width = 5, height = 4, units = "in")
@@ -272,7 +272,7 @@ limno %>%
   mutate(secchi_dn = as.numeric(secchi_dn),
          secchi_dn = ifelse(is.na(secchi_dn), 4, secchi_dn)) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = secchi_dn))+
   facet_wrap(~year(sampledate))+
@@ -285,7 +285,7 @@ limno %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c(direction = -1, na.value = "black")
 
 ggpreview(last_plot(), dpi = 650, width = 5, height = 4, units = "in")
@@ -327,7 +327,7 @@ ggpreview(last_plot(), dpi = 650, width = 2, height = 2, units = "in")
 limno %>% 
   filter(sampledepth == 0) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = do), size = 3)+
   coord_sf()+
@@ -339,7 +339,7 @@ limno %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()
 
 limno %>% 
@@ -354,7 +354,7 @@ limno %>%
   gather(layer, do, benthic, surface) %>% 
   mutate(layer = fct_reorder(layer, c("surface", "benthic"))) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = do), size = 3)+
   facet_grid(year(sampledate)~layer)+
@@ -368,7 +368,7 @@ limno %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()
 
 ggpreview(last_plot(), dpi = 650, width = 5, height = 4, units = "in")
@@ -384,7 +384,7 @@ limno %>%
               select(spot, do)) %>% 
   rename(surface = do) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = surface/benthic), size = 3)+
   facet_grid(~year(sampledate))+
@@ -398,7 +398,7 @@ limno %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_gradient2(low = "darkgoldenrod", high = "darkgreen", midpoint = 1)
 ggpreview(last_plot(), dpi = 650, width = 5, height = 4, units = "in")
 
@@ -414,10 +414,11 @@ limno %>%
   spread(layer, do) %>% 
   mutate(auto_struc = pel/ben) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = auto_struc), size = 3)+
   coord_sf()+
+  facet_wrap(~year)+
   guides(fill = "none")+
   theme_bw()+
   theme(panel.grid = element_line(color = "white"),
@@ -426,7 +427,7 @@ limno %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_gradient2(low = "darkgoldenrod", high = "darkgreen", midpoint = 1)+
   labs(color = "surface DO/ benthic DO")
 
@@ -454,7 +455,7 @@ limno %>%
               select(- ben, -pel) %>% 
               mutate(layer = "% Saturation")) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = auto_struc), size = 3)+
   coord_sf()+
@@ -467,7 +468,7 @@ limno %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_gradient2(low = "darkgoldenrod", high = "darkgreen", midpoint = 0)+
   labs(color = "Autotrophic Structure")
 
@@ -583,7 +584,7 @@ limno %>%
   spread(layer, o2sat) %>% 
   mutate(auto_struc = pel/ben) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = auto_struc), size = 3)+
   coord_sf()+
@@ -596,7 +597,7 @@ limno %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_gradient2(low = "darkgoldenrod", high = "darkgreen", midpoint = 1)+
   labs(color = "surface %DO/ benthic %DO")
 
@@ -636,30 +637,45 @@ limno %>%
   geom_vline(xintercept = 100)+
   scale_y_reverse()
 
-#====Plot nutrient data (17May2022==== 
+#====Plot nutrient data==== 
 
-nut <- full_join(nutrients %>% mutate(layer = ifelse(layer == "Int", "Ben", "Pel")), grid_sites %>% filter(year(sampledate)==2021))
+nut <- full_join(nutrients %>% 
+                   mutate(analyte2 = ifelse(analyte == "nh4_nh3", "nh4", analyte)) %>% 
+                   group_by(method, analyte2, layer) %>% 
+                   mutate(z = scale(mgl)[,1]) %>% 
+                   ungroup,
+                 grid_sites)
 
+bothyears <- c("nh4", "no3", "po4")
 
-
-analytelist <- unique(nut$analyte)
-
-nutnames <- data.frame(analyte = analytelist[!is.na(analytelist)], chem = c("nh4_nh3", "no2", "no3", "tp", "po4","tn"))
-
-nut <- nut %>% left_join(nutnames)
-
-nut2 <- nut %>% 
-  mutate(mgl = ifelse(is.na(mgl), 0, mgl))
-
+# how do years differ in analyte concentrations
 nut %>% 
-  group_by(analyte, layer) %>% 
-  mutate(z = scale(mgl)[,1]) %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  select(analyte2, spot2021, layer, year, mgl) %>% 
+  spread(year, mgl) %>% 
+  ggplot(aes(x = `2021`, y = `2022`))+
+  facet_wrap(~paste(layer,analyte2), scales = "free") + 
+  geom_point()+
+  theme_bw()
+
+# how does the 
+nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  select(analyte2, spot2021, layer, year, mgl) %>% 
+  spread(layer, mgl) %>% 
+  ggplot(aes(x = ben, y = pel, color = factor(year)))+
+  facet_wrap(~analyte2, scales = "free") + 
+  geom_point()+
+  theme_bw()
+
+# plot concentrations
+nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
-  # geom_point(aes(easting, northing))+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   geom_point(aes(easting, northing, color = mgl), size = 2)+
   coord_sf()+
-  facet_grid(layer~chem)+
+  facet_grid(paste(layer, year)~analyte2)+
   guides(fill = "none")+
   labs(color = "mg/L")+
   theme_bw()+
@@ -668,18 +684,104 @@ nut %>%
         axis.title = element_blank(),
         axis.ticks = element_blank(),
         legend.position = "left",
-        plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
-  scale_color_viridis_c(trans = "log10", labels = scales::comma_format())
+        plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis_c(trans = "log10", na.value = "gray20")
+
+# plot scaled concentrations
+nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  ggplot()+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
+  geom_point(aes(easting, northing, color = z), size = 2)+
+  coord_sf()+
+  facet_grid(paste(layer, year)~analyte2)+
+  guides(fill = "none")+
+  labs(color = "concentration\nZ-scored")+
+  theme_bw()+
+  theme(panel.grid = element_line(color = "white"),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "left",
+        plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis_c()
+
+# plot wider
+nz21 <- nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  ggplot()+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
+  geom_point(aes(easting, northing, color = z),  data = . %>% filter(year == 2021))+
+  coord_sf()+
+  facet_grid(fct_rev(layer)~analyte2, switch = "y")+
+  guides(fill = "none")+
+  labs(color = "concentration\nZ-scored",
+       title = "2021")+
+  theme_bw()+
+  theme(panel.grid = element_line(color = "white"),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "left",
+        plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis_c(limits = c(min(nut$z, na.rm = T), max(nut$z, na.rm = T)))
+
+nz22 <- nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  ggplot()+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
+  geom_point(aes(easting, northing, color = z),  data = . %>% filter(year == 2022))+
+  coord_sf()+
+  facet_grid(fct_rev(layer)~analyte2)+
+  guides(fill = "none")+
+  labs(color = "concentration\nZ-scored",
+       title = "2022")+
+  theme_bw()+
+  theme(panel.grid = element_line(color = "white"),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "left",
+        plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis_c(limits = c(min(nut$z, na.rm = T), max(nut$z, na.rm = T)))
+
+nz22.2 <- nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  ggplot()+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
+  geom_point(aes(easting, northing, color = z),  data = . %>% filter(year == 2022))+
+  coord_sf()+
+  facet_grid(fct_rev(layer)~analyte2, switch = "y")+
+  guides(fill = "none")+
+  labs(color = "concentration\nZ-scored",
+       title = "2022")+
+  theme_bw()+
+  theme(panel.grid = element_line(color = "white"),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "left",
+        plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis_c(limits = c(min(nut$z, na.rm = T), max(nut$z, na.rm = T)))
+
+
+plot_grid(nz21 + theme(legend.position = "none"), nz22 + theme(legend.position = "none"))
+
+long <- plot_grid(nz21 + theme(legend.position = "none"), nz22.2 + theme(legend.position = "none"), ncol = 1)
+
+nzleg <- get_legend(nz21 + theme(legend.direction = "horizontal"))
+
+plot_grid(long, nzleg, rel_widths = c(4, 1))
 
 nut %>% 
   select(-vial, -analyte) %>% 
-  spread(chem, mgl) %>% 
-  filter(layer == "Ben") %>% 
+  spread(analyte2, mgl) %>% 
+  filter(layer == "ben") %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
-  geom_point(aes(easting, northing, color = nh4_nh3), size = 2)+
+  geom_point(aes(easting, northing, color = nh4), size = 2)+
+  facet_wrap(~year) +
   coord_sf()+
   guides(fill = "none")+
   labs(color = "NH4 NH3 mg/L",
@@ -692,10 +794,10 @@ nut %>%
         axis.ticks = element_blank(),
         legend.position = "top",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
-  annotation_scale()+
-  annotation_north_arrow(style = north_arrow_orienteering, pad_y = unit(1.2, "lines"), height = unit(1, "lines"))
+  ggspatial::annotation_scale()+
+  ggspatial::annotation_north_arrow(style = ggspatial::north_arrow_orienteering, pad_y = unit(1.2, "lines"), height = unit(1, "lines"))
 
 ggpreview(plot = last_plot(), width = 3, height = 5, units = "in")
 
@@ -703,11 +805,11 @@ nut %>%
   group_by(analyte, layer) %>% 
   mutate(z = scale(mgl)[,1]) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = z), size = 2)+
   coord_sf()+
-  facet_grid(layer~chem)+
+  facet_grid(layer~analyte)+
   guides(fill = "none")+
   labs(color = "Z Score")+
   theme_bw()+
@@ -717,76 +819,42 @@ nut %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()
 # ggpreview(plot = last_plot(), width = 8, height = 6, units= "in", dpi = 650)
 
-nut %>% 
-  select(-vial) %>% 
-  spread(layer, mgl) %>% 
-  ggplot(aes(x = Ben, y = Pel))+
-  facet_wrap(~chem, scales = "free")+
-  geom_point()
 
-
-
-nutwide <- nut2 %>% 
+nutwide <- nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
   mutate(eaststd = (easting-min(easting))/1000,
         northstd = (northing-min(northing))/1000)%>% 
-  select(spot,northing, easting, eaststd, northstd, layer, sed_type, chem, mgl) %>% 
-  spread(chem, mgl) %>% 
-  mutate(tin = nh4_nh3 + no2 + no3,
-         don = tn - nh4_nh3 - no2 - no3,
-         dop = tp - po4,
-         np = tn/tp)
+  select(year, spot,northing, easting, eaststd, northstd, layer, sed_type, analyte2, mgl) %>% 
+  spread(analyte2, mgl) 
 
 
 nutwide %>% 
-  gather(chem, mgl, c(tin:dop, np)) %>% 
-  group_by(chem, layer) %>% 
-  mutate(z = scale(mgl)[,1]) %>% 
-  ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
-  # geom_point(aes(easting, northing))+
-  geom_point(aes(easting, northing, color = z), size = 2)+
-  coord_sf()+
-  facet_grid(layer~chem)+
-  guides(fill = "none")+
-  labs(color = "Z score")+
-  theme_bw()+
-  theme(panel.grid = element_line(color = "white"),
-        axis.text = element_blank(),
-        axis.title = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "left",
-        plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
-  scale_color_viridis_c( labels = scales::comma_format())
-
-ggpreview(plot = last_plot(), width = 5, height = 4, units = "in", dpi = 650)
-
-nutwide %>% 
-  gather(chem, mgl, c(tin:dop, np)) %>% 
-  ggplot(aes(mgl))+
+  gather(chem, mgl, c(nh4:po4)) %>% 
+  ggplot(aes(mgl, fill = factor(year)))+
   facet_wrap(layer~chem, scales = "free", nrow = 2)+
   geom_histogram()
 
 
-# utmcoords <- SpatialPoints(cbind(nutwide$easting, nutwide$northing), proj4string =CRS("+init=epsg:32628"))
-# latlons <- spTransform(utmcoords, CRS("+proj=longlat"))
-# 
-# nutwide$lat <- coordinates(latlons)[,1]
-# nutwide$lng <- coordinates(latlons)[,2]
 
-
+nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  left_join(limno %>% select(spot, secchi_dn) %>% mutate(secchi_dn = ifelse(secchi_dn == "INF", Inf, as.numeric(secchi_dn))) %>% unique()) %>% 
+  ggplot(aes(x = secchi_dn, y = mgl, col = factor(year))) + 
+  geom_point(size = 3) + 
+  facet_grid(layer~analyte2, scales = "free_y") +
+  theme_bw()
 
 
 library(nlme)
 
 #===
 
-nocor <- gls(nh4_nh3~1,
-             data = nutwide %>% filter(layer == "Ben"),
+nocor <- gls(nh4~1,
+             data = nutwide %>% filter(layer == "ben"),
              method = "REML")
 
 
@@ -794,18 +862,18 @@ nocor <- gls(nh4_nh3~1,
 #===preliminary analyses of nutrient concentrations==
 #pull benthic
 nwb <- nutwide %>% 
-  filter(layer == "Ben")
+  filter(layer == "ben")
 
 #pull pelagic
 nwp <- nutwide %>% 
-  filter(layer == "Pel")
+  filter(layer == "pel")
 
-fulllist <- c(nutnames$chem, "tin", "don", "dop", "np")
+bothyears
 
 
 nutrient_resp_models <- function(data, rhs_formula){
   #effects of sediment type
-  analyte_cols <- which(colnames(data) %in% fulllist)
+  analyte_cols <- which(colnames(data) %in% bothyears)
   
   results <- list()
   
@@ -822,7 +890,7 @@ nutrient_resp_models <- function(data, rhs_formula){
   
   return(results[lapply(results, length)>0])
 }
-sedtypeb <- nutrient_resp_models(nwb, "sed_type")
+sedtypeb <- nutrient_resp_models(nwb, "sed_type * factor(year)")
 
 sedtypeb
 
@@ -834,6 +902,13 @@ lapply(sedtypeb, function(x) anova(x))
 nut
 
 lapply(nutrient_resp_models(nwb %>% mutate(sed_type2 = ifelse(sed_type == "cladophorales", "cladophora", "sediment")), "sed_type2"), summary)
+
+
+lm(nh4~(eaststd + northstd + factor(year))^2 + sed_type, data = nwb) %>% summary()
+lm(nh4~(eaststd + northstd + factor(year))^2 + sed_type, data = nwp) %>% summary()
+
+lm(po4~(eaststd + northstd + factor(year))^2 + sed_type, data = nwb) %>% summary()
+lm(po4~(eaststd + northstd + factor(year))^2 + sed_type, data = nwp) %>% summary()
 
 
 pelcheck <- nwp %>% 
@@ -959,7 +1034,7 @@ for(i in 1:length(fulllist)){
     mutate(pb = Pel/Ben) %>% 
     filter(chem == fulllist[i]) %>% 
     ggplot()+
-    geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+    geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
     # geom_point(aes(easting, northing))+
     geom_point(aes(easting, northing, color = pb), size = 2)+
     coord_sf()+
@@ -973,7 +1048,7 @@ for(i in 1:length(fulllist)){
           axis.ticks = element_blank(),
           legend.position = "left",
           plot.title = element_text(hjust = 0.5))+
-    scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+  
     scale_color_gradient2(low = "darkgoldenrod", high = "darkgreen", midpoint = 1, n.breaks = 4)+
     theme(legend.position = c(0.35, 0.9),
           legend.direction = "horizontal",
@@ -995,7 +1070,7 @@ for(i in 1:length(fulllist)){
     mutate(pb = Pel/Ben) %>% 
     filter(chem == fulllist[i]) %>% 
     ggplot()+
-    geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+    geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
     # geom_point(aes(easting, northing))+
     geom_point(aes(easting, northing, color = pb, shape = pb>1), size = 2)+
     coord_sf()+
@@ -1010,7 +1085,7 @@ for(i in 1:length(fulllist)){
           axis.ticks = element_blank(),
           legend.position = "left",
           plot.title = element_text(hjust = 0.5))+
-    scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+  
     scale_color_viridis_c(option = "magma", n.breaks = 3)+
     theme(legend.position = c(0.3, 0.9),
           legend.direction = "horizontal",
@@ -1116,7 +1191,7 @@ nwb %>%
   gather(var, val, eaststd, northstd) %>% 
   ggplot()+
   facet_wrap(~var)+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   geom_point(aes(easting, northing, color = val), size = 2)+
   coord_sf()+
   guides(fill = "none",
@@ -1129,7 +1204,7 @@ nwb %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_gradient(low = "black", high = "white")
 
 
@@ -1288,7 +1363,7 @@ donut <- nut %>%
 
 donut %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = don), size = 2)+
   coord_sf()+
@@ -1302,13 +1377,13 @@ donut %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()
 
 
 donut %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = tin/(po4+0.01)), size = 2)+
   coord_sf()+
@@ -1322,13 +1397,13 @@ donut %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()
 
 nprat <- donut %>% 
   filter(layer == "Pel") %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = nh4_nh3/(po4)), size = 2)+
   coord_sf()+
@@ -1341,14 +1416,14 @@ nprat <- donut %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c(trans = "log10")
 
 
 donut %>% 
   filter(layer == "Pel") %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = dop), size = 2)+
   coord_sf()+
@@ -1362,14 +1437,14 @@ donut %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()
 
 
 peldon <- donut %>% 
   filter(layer == "Pel") %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = don), size = 2)+
   coord_sf()+
@@ -1382,14 +1457,14 @@ peldon <- donut %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()
 
 
 peldop <- donut %>% 
   filter(layer == "Pel") %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = dop), size = 2)+
   coord_sf()+
@@ -1402,7 +1477,7 @@ peldop <- donut %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()
 
 plot_grid(peldon, peldop)
@@ -1414,7 +1489,7 @@ pelphyc <- turner %>%
   left_join(grid_sites) %>% 
   filter(year(sampledate)==2021) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = phyc), size = 2)+
   coord_sf()+
@@ -1427,7 +1502,7 @@ pelphyc <- turner %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()
 
 
@@ -1537,7 +1612,7 @@ cc <- full_join(cc, grid_sites) %>% filter(!is.na(tanyt))
 
 tanytplot <- cc %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, size = tanyt), color = "#e7298a")+
   coord_sf()+
@@ -1551,7 +1626,7 @@ tanytplot <- cc %>%
         legend.position = "left",
         plot.title = element_text(hjust = 0.5),
         legend.title = element_blank())+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   labs(title = "Tanytarsini",
        color = element_blank())
@@ -1559,7 +1634,7 @@ tanytplot <- cc %>%
 
 chiroplot <- cc %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, size = chiro), color = "#1b9e77")+
   coord_sf()+
@@ -1573,7 +1648,7 @@ chiroplot <- cc %>%
         legend.position = "left",
         plot.title = element_text(hjust = 0.5),
         legend.title = element_blank())+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   labs(title = "Chironomini",
        color = element_blank())
@@ -1582,7 +1657,7 @@ chiroplot <- cc %>%
 
 orthoplot <- cc %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, size = ortho), color = "#d95f02")+
   coord_sf()+
@@ -1596,7 +1671,7 @@ orthoplot <- cc %>%
         legend.position = "left",
         plot.title = element_text(hjust = 0.5),
         legend.title = element_blank())+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   labs(title = "Orthocladiinae",
        color = element_blank())
 
@@ -1605,7 +1680,7 @@ orthoplot <- cc %>%
 
 tanypplot <- cc %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, size = tanyp), color = "#7570b3")+
   coord_sf()+
@@ -1619,7 +1694,7 @@ tanypplot <- cc %>%
         legend.position = "left",
         plot.title = element_text(hjust = 0.5),
         legend.title = element_blank())+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   labs(title = "Tanypodinae",
        color = element_blank())
@@ -1628,7 +1703,7 @@ tanypplot <- cc %>%
 
 tubifexplot <- cc %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, size = tubifex), color = "gray20")+
   coord_sf()+
@@ -1642,7 +1717,7 @@ tubifexplot <- cc %>%
         legend.position = "left",
         plot.title = element_text(hjust = 0.5),
         legend.title = element_blank())+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   labs(title = "Tubifex",
        color = element_blank())
@@ -1852,7 +1927,7 @@ turner.avg <- turner %>%
 
 turner_chl <- turner.avg %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = chl))+
   facet_wrap(~year, nrow = 2)+
@@ -1865,13 +1940,13 @@ turner_chl <- turner.avg %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   NULL
 
 turner_phyc <- turner.avg %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = phyc))+
   coord_sf()+
@@ -1884,7 +1959,7 @@ turner_phyc <- turner.avg %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   NULL
 
@@ -1895,7 +1970,7 @@ ggpreview(last_plot(), dpi = 650, width = 4, height = 4, units = "in")
 turner.avg %>% 
   mutate(phycfrac = phyc/chl) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = phycfrac, size = log10(chl+phyc+0.1)))+
   coord_sf()+
@@ -1908,7 +1983,7 @@ turner.avg %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c(trans = "log10")+
   NULL
 
@@ -1943,7 +2018,7 @@ bt <- full_join(bt, grid_sites)
 pc_plot <- bt %>% 
   filter(year == 2021) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = pel_cyano))+
   coord_sf()+
@@ -1955,7 +2030,7 @@ pc_plot <- bt %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c(breaks = c(0, 0.05, 0.1, 0.15))+
   theme(legend.position = "bottom")
 
@@ -1964,7 +2039,7 @@ pc_plot <- bt %>%
 pg_plot <- bt %>% 
   filter(year == 2021) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = pel_greens))+
   coord_sf()+
@@ -1976,7 +2051,7 @@ pg_plot <- bt %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c(breaks = c(0, 0.05, 0.1, 0.15))+
   theme(legend.position = "bottom")
   
@@ -1984,7 +2059,7 @@ pg_plot <- bt %>%
 pd_plot <- bt %>% 
   filter(year == 2021) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = pel_diatoms))+
   coord_sf()+
@@ -1996,7 +2071,7 @@ pd_plot <- bt %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c(breaks = c(0, 0.05, 0.1, 0.15))+
   theme(legend.position = "bottom")
   
@@ -2053,7 +2128,7 @@ bt %>%
 
 bc_plot <- bt %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = sed_cyano))+
   facet_wrap(~year)+
@@ -2066,7 +2141,7 @@ bc_plot <- bt %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   theme(legend.position = "bottom")
 
@@ -2076,7 +2151,7 @@ max(bt$sed_greens)
 bd_plot <- bt %>% 
   ggplot()+
   facet_wrap(~year)+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = sed_diatoms))+
   coord_sf()+
@@ -2088,7 +2163,7 @@ bd_plot <- bt %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   theme(legend.position = "bottom")
 
@@ -2096,7 +2171,7 @@ bd_plot <- bt %>%
 br_plot <- bt %>% 
   ggplot()+
   facet_wrap(~year)+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = sed_cyano/sed_diatoms))+
   coord_sf()+
@@ -2108,7 +2183,7 @@ br_plot <- bt %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   theme(legend.position = "bottom")
 
@@ -2261,7 +2336,7 @@ zoops.wide <- zoops.long %>%
 zoops.wide %>% 
   left_join(grid_sites) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = log10(dalo)))+
   coord_sf()+
@@ -2273,14 +2348,14 @@ zoops.wide %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   theme(legend.position = "bottom")
 
 zoops.wide %>% 
   left_join(grid_sites) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = (cycl)))+
   coord_sf()+
@@ -2292,7 +2367,7 @@ zoops.wide %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   theme(legend.position = "bottom")
 
@@ -2300,7 +2375,7 @@ zoops.wide %>%
   mutate(rotifers = kera + brac + poly + fili + aspl) %>% 
   left_join(grid_sites) %>% 
   ggplot()+
-  geom_polygon(aes(long, lat, group = piece, fill = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
   geom_point(aes(easting, northing, color = rotifers))+
   coord_sf()+
@@ -2312,7 +2387,7 @@ zoops.wide %>%
         axis.ticks = element_blank(),
         legend.position = "left",
         plot.title = element_text(hjust = 0.5))+
-  scale_fill_manual(values = c("dodgerblue", rep("olivedrab", 18)))+
+
   scale_color_viridis_c()+
   theme(legend.position = "bottom")
 
