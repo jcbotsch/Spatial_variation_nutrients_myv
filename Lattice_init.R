@@ -6,9 +6,18 @@ library(terra)
 library(cowplot)
 library(scatterpie)
 library(lubridate)
+library(brms)
 
 #====Set aesthetics====
-theme_set(theme_minimal())
+theme_set(  theme_bw()+
+              theme(panel.grid = element_line(color = "white"),
+                    axis.text = element_blank(),
+                    axis.title = element_blank(),
+                    axis.ticks = element_blank(),
+                    legend.position = "top",
+                    legend.key.height = unit(0.5, "lines"),
+                    legend.title = element_text(vjust = 1),
+                    plot.title = element_text(hjust = 0.5)))
 
 ggpreview <- function(...) {
   fname <- tempfile(fileext = ".png")
@@ -46,8 +55,8 @@ crs(myvatnshp) <- crs("+init=epsg:32628")
 #=====Load data====
 file <- "Lattice_MASTER_19Jan24.xlsx"
 
-grid_sites <- readxl::read_xlsx(file, sheet ="Coordinates", na = "NA") %>%  mutate(year = year(sampledate),
-                                                                              spot2021 = ifelse(year == 2021, spot,
+grid_sites <- readxl::read_xlsx(file, sheet ="Coordinates", na = "NA") %>%  mutate(year = as.character(year(sampledate)),
+                                                                              spot2021 = ifelse(year == "2021", spot,
                                                                                                 ifelse(spot>=27+31, spot-30, spot-31)))
 profiles <- readxl::read_xlsx(file, sheet = "profiles", na = "NA")
 turner <- readxl::read_xlsx(file, sheet = "Turner", na = "NA")
@@ -240,9 +249,10 @@ ggpreview(last_plot(), dpi = 650, width = 5, height = 4, units = "in")
 
 
 limno %>% 
-  group_by(year) %>% 
+  # group_by(year) %>% 
   summarise(min = min(depth),
             median = median(depth),
+            mean = mean_se(depth),
             max = max(depth))
 
 
@@ -642,23 +652,58 @@ limno %>%
 nut <- full_join(nutrients %>% 
                    mutate(analyte2 = ifelse(analyte == "nh4_nh3", "nh4", analyte)) %>% 
                    group_by(method, analyte2, layer) %>% 
-                   mutate(z = scale(mgl)[,1]) %>% 
+                   mutate(z = scale(mgl)[,1],
+                          mgLlog10 = log10(mgl + min(mgl)/2)) %>% 
                    ungroup,
-                 grid_sites)
+                 grid_sites %>% mutate(year = as.factor(year))) 
 
 bothyears <- c("nh4", "no3", "po4")
 
-# how do years differ in analyte concentrations
+# summaries
+summary(nut %>% filter(analyte2 %in% bothyears) %>% select(spot, analyte, year, layer, mgl) %>% 
+          mutate(year_analyte = paste(analyte, year, layer)) %>% 
+          select(spot, year_analyte, mgl) %>% 
+          spread(year_analyte, mgl)) 
+
 nut %>% 
   filter(analyte2 %in% bothyears) %>% 
-  select(analyte2, spot2021, layer, year, mgl) %>% 
-  spread(year, mgl) %>% 
+  ggplot(aes(x = mgl)) + facet_wrap(layer~analyte, scales = "free") + geom_histogram() + theme_bw()
+
+# how do years differ in analyte concentrations
+
+lm(z~analyte2*year*layer, 
+   data = nut %>%  filter(analyte2 %in% bothyears,
+                                             paste(analyte2, layer)!="nh4 pel")) %>% 
+  plot()
+
+nut %>% 
+  filter(analyte2 %in% bothyears,
+         paste(analyte2, layer)!="nh4 pel") %>% 
+  group_by(analyte2, layer) %>% 
+  nest() %>% 
+  mutate(fit = map(data, ~lm(mgl~year, data = .x)),
+         out = map(fit, ~broom::tidy(car::Anova(.x)))) %>% 
+  unnest(out)
+
+nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  select(analyte2, spot2021, layer, year, z) %>% 
+  spread(year, z) %>% 
   ggplot(aes(x = `2021`, y = `2022`))+
   facet_wrap(~paste(layer,analyte2), scales = "free") + 
   geom_point()+
   theme_bw()
 
-# how does the 
+nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  select(analyte2, spot2021, layer, year, mgLlog10) %>% 
+  spread(year, mgLlog10) %>% 
+  ggplot(aes(x = `2021`, y = `2022`))+
+  facet_wrap(~paste(layer,analyte2), scales = "free") + 
+  geom_point()+
+  theme_bw()
+
+# how correlated are nutrient concentratoins
 nut %>% 
   filter(analyte2 %in% bothyears) %>% 
   select(analyte2, spot2021, layer, year, mgl) %>% 
@@ -666,6 +711,7 @@ nut %>%
   ggplot(aes(x = ben, y = pel, color = factor(year)))+
   facet_wrap(~analyte2, scales = "free") + 
   geom_point()+
+  geom_abline(slope = 1) + 
   theme_bw()
 
 # plot concentrations
@@ -697,13 +743,6 @@ nut %>%
   facet_grid(paste(layer, year)~analyte2)+
   guides(fill = "none")+
   labs(color = "concentration\nZ-scored")+
-  theme_bw()+
-  theme(panel.grid = element_line(color = "white"),
-        axis.text = element_blank(),
-        axis.title = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "left",
-        plot.title = element_text(hjust = 0.5)) +
   scale_color_viridis_c()
 
 # plot wider
@@ -722,7 +761,9 @@ nz21 <- nut %>%
         axis.text = element_blank(),
         axis.title = element_blank(),
         axis.ticks = element_blank(),
-        legend.position = "left",
+        legend.position = "top",
+        legend.key.height = unit(0.5, "lines"),
+        legend.title = element_text(vjust = 1),
         plot.title = element_text(hjust = 0.5)) +
   scale_color_viridis_c(limits = c(min(nut$z, na.rm = T), max(nut$z, na.rm = T)))
 
@@ -741,7 +782,9 @@ nz22 <- nut %>%
         axis.text = element_blank(),
         axis.title = element_blank(),
         axis.ticks = element_blank(),
-        legend.position = "left",
+        legend.position = "bottom",
+        legend.key.height = unit(0.5, "lines"),
+        legend.title = element_text(vjust = 1),
         plot.title = element_text(hjust = 0.5)) +
   scale_color_viridis_c(limits = c(min(nut$z, na.rm = T), max(nut$z, na.rm = T)))
 
@@ -760,18 +803,19 @@ nz22.2 <- nut %>%
         axis.text = element_blank(),
         axis.title = element_blank(),
         axis.ticks = element_blank(),
-        legend.position = "left",
-        plot.title = element_text(hjust = 0.5)) +
+        legend.position = "bottom",
+        legend.key.height = unit(0.5, "lines"),
+        legend.title = element_text(vjust = 1),        plot.title = element_text(hjust = 0.5)) +
   scale_color_viridis_c(limits = c(min(nut$z, na.rm = T), max(nut$z, na.rm = T)))
 
 
-plot_grid(nz21 + theme(legend.position = "none"), nz22 + theme(legend.position = "none"))
+plot_grid(nz21, nz22)
 
-long <- plot_grid(nz21 + theme(legend.position = "none"), nz22.2 + theme(legend.position = "none"), ncol = 1)
+long <- plot_grid(nz21, nz22.2, ncol = 1)
 
-nzleg <- get_legend(nz21 + theme(legend.direction = "horizontal"))
+ggsave(plot = long, width = 84, height= 200, units = "mm", dpi = 650, filename = "spat_nuts_fig2.jpeg")
 
-plot_grid(long, nzleg, rel_widths = c(4, 1))
+plot_grid(long, nzleg, rel_heights = c(4, 1), ncol = 1)
 
 nut %>% 
   select(-vial, -analyte) %>% 
@@ -832,6 +876,14 @@ nutwide <- nut %>%
   spread(analyte2, mgl) 
 
 
+nutwide2 <- nut %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  mutate(eaststd = (easting-min(easting))/1000,
+         northstd = (northing-min(northing))/1000)%>% 
+  select(year, spot2021, northing, easting, eaststd, northstd, layer, sed_type, analyte2, mgl) %>% 
+  spread(analyte2, mgl) 
+
+
 nutwide %>% 
   gather(chem, mgl, c(nh4:po4)) %>% 
   ggplot(aes(mgl, fill = factor(year)))+
@@ -849,6 +901,36 @@ nut %>%
   theme_bw()
 
 
+####Newer stats attempts####
+# set up distance matrix
+site.dist <- dist(cbind(nutwide2$northing, nutwide2$easting), diag = TRUE, upper = TRUE)/1000
+
+brm(mvbind(nh4, no3, po4)~year*layer,
+    family = "gaussian",
+    data = nutwide2, 
+    iter = 10,
+    chains = 4,
+    cores = 4)
+
+# question :ben pel coupling
+
+# ben_sub <- bf(ben_nh4~midges+depth+sed_type + year , autocorrelation) #if wanting a different set of predictors
+
+# create adjacency matrix
+# car(Adjacency, gr = site)
+
+# maybe try 1 or 10 to check whether there is an error
+# start with 500 to see if its working if it will converge
+# 2000 iters at least for the full model
+
+# this is the model
+brm(mvn(ben_nh4, pel_nh4)~year + phc + year + depth + eaststd + nothstd + chironominae) # gamma, hurdle_gamma (basically 0inflated gamma), or zinfbinomial
+
+
+
+
+#####OLD STATS####
+
 library(nlme)
 
 #===
@@ -856,7 +938,6 @@ library(nlme)
 nocor <- gls(nh4~1,
              data = nutwide %>% filter(layer == "ben"),
              method = "REML")
-
 
 
 #===preliminary analyses of nutrient concentrations==
@@ -948,7 +1029,8 @@ pelcheck %>%
 
 # lapply(nutrient_resp_models(pelcheck, "depth"), summary)
     
-gls(nh4_nh3 ~ depth2, 
+gls(nh4_nh3 ~ depth,
+
     data = pelcheck, 
     cor = corExp(form = ~easting + northing, nugget= TRUE)) %>% summary()
 
