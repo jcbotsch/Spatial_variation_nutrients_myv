@@ -172,7 +172,7 @@ adj_mat
 
 #====Fit model====
 
-
+start_time <- Sys.time()
 nh4mod <- brm(mvbind(ben_nh4, pel_nh4)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
                 car(adj_mat, gr = site),
               data = nut,
@@ -181,6 +181,30 @@ nh4mod <- brm(mvbind(ben_nh4, pel_nh4)~year + depth + east.std + north.std + sed
               chains = 4,
               cores = 4,
               family = "hurdle_gamma")
+Sys.time() - start_time
+
+start_time <- Sys.time()
+po4mod <- brm(mvbind(ben_po4, pel_po4)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
+                car(adj_mat, gr = site),
+              data = nut,
+              data2 = list(adj_mat = adj_mat, spot2021 = nut$site),
+              iter = 500,
+              chains = 4,
+              cores = 4,
+              family = "hurdle_gamma")
+Sys.time() - start_time
+
+
+start_time <- Sys.time()
+no3mod <- brm(mvbind(ben_no3, pel_no3)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
+                car(adj_mat, gr = site),
+              data = nut,
+              data2 = list(adj_mat = adj_mat, spot2021 = nut$site),
+              iter = 500,
+              chains = 4,
+              cores = 4,
+              family = "hurdle_gamma")
+Sys.time() - start_time
 
 
 #######################################################
