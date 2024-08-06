@@ -55,6 +55,8 @@ crs(myvatnshp) <- crs("+init=epsg:32628")
 #=====Load data====
 file <- "Lattice_MASTER_19Jan24.xlsx"
 
+site_orig <- read_csv("1km_grid.csv")
+
 grid_sites <- readxl::read_xlsx(file, sheet ="Coordinates", na = "NA") %>%  mutate(year = as.character(year(sampledate)),
                                                                               spot2021 = ifelse(year == "2021", spot,
                                                                                                 ifelse(spot>=27+31, spot-30, spot-31)))
@@ -67,6 +69,80 @@ zoops <-  readxl::read_xlsx(file, sheet = "zooplankton", na = "NA")
 esites <- read_csv("site_meta.csv", col_types =  ("cccddd"))
 nutrients <- readxl::read_xlsx(file, sheet = "nutrients", na = "NA")
 
+#=====combine data=====
+# pull midges
+midges <- cc %>% 
+  mutate(chironominae = (chiro + tanyt)/fract_count) %>% 
+  select(spot, chironominae)
+
+# pull probes
+pel_algae <- turner %>% 
+  group_by(spot) %>% 
+  summarise(chl = mean(chl),
+            phyc = mean(phyc))
+
+# pull data from profiles
+site_depth <- profiles %>% 
+  select(spot, depth) %>% 
+  unique()
+
+# prep nutrients
+
+bothyears <- c("nh4", "no3", "po4") # select nutrients in both years
+
+nut1 <- nutrients %>% 
+  mutate(analyte2 = ifelse(analyte == "nh4_nh3", "nh4", analyte),
+         layer_analyte = paste(layer, analyte2, sep = "_")) %>% 
+  filter(analyte2 %in% bothyears) %>%                  
+  select(spot, layer_analyte, mgl) %>%
+  spread(layer_analyte, mgl)
+
+
+
+
+# prep site information and join
+sites <- grid_sites %>% 
+  mutate(east.std = easting/1000 - min(easting/1000), #km distance from most western site
+         north.std = northing/1000 - min(northing/1000)) %>% # km distance from most southern site
+  select(site = spot2021, spot, year, sed_type, east.std, north.std, easting, northing)
+
+nut <- sites %>% 
+  full_join(site_depth) %>% 
+  full_join(nut1) %>% 
+  full_join(midges) %>% 
+  full_join(pel_algae)
+
+# create adjacency matrix
+dist_mat <- as.matrix(dist(cbind(nut$northing, nut$easting), diag = TRUE, upper = TRUE)/1000)
+
+row.names(dist_mat) <- nut$spot
+colnames(dist_mat) <- nut$spot
+# plot to check
+thresh = 1.35 # select sites <thresh as being adjacent.
+
+as.data.frame(as.matrix(dist_mat)) %>% 
+  mutate(spot = row.names(.)) %>% 
+  gather(spot2, dist.km, -spot) %>% 
+  filter(as.numeric(spot)<=31,
+         as.numeric(spot2)<=31) %>%
+  mutate(adjacent = ifelse(dist.km<thresh, TRUE, FALSE)) %>% 
+  ggplot(aes(x = factor(spot, levels = unique(as.numeric(spot))), y = factor(spot2, levels = unique(as.numeric(spot2))), fill = adjacent)) +
+  geom_tile() + 
+  theme_bw()
+
+
+# create adjacency matrix
+adj_mat <- dist_mat
+adj_mat[adj_mat<1.5] <- 1
+
+dist_mat
+
+
+#######################################################
+# OLD (as of 5 August)
+########################################################
+
+
 #====Plot spot locations====
 
 #site names
@@ -74,7 +150,7 @@ grid_sites %>%
   ggplot()+
   geom_spatvector(fill = "dodgerblue", data = myvatnshp)+
   # geom_point(aes(easting, northing))+
-  geom_text(aes(easting, northing, label = spot))+
+  geom_text(aes(easting, northing, label = spot2021))+
   coord_sf()+
   guides(fill = "none")+
   theme_bw()+
