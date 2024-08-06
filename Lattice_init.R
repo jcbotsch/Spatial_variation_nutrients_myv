@@ -98,8 +98,6 @@ nut1 <- nutrients %>%
   spread(layer_analyte, mgl)
 
 
-
-
 # prep site information and join
 sites <- grid_sites %>% 
   mutate(east.std = easting/1000 - min(easting/1000), #km distance from most western site
@@ -112,30 +110,77 @@ nut <- sites %>%
   full_join(midges) %>% 
   full_join(pel_algae)
 
-# create adjacency matrix
+#====create adjacency matrix====
 dist_mat <- as.matrix(dist(cbind(nut$northing, nut$easting), diag = TRUE, upper = TRUE)/1000)
 
 row.names(dist_mat) <- nut$spot
 colnames(dist_mat) <- nut$spot
-# plot to check
-thresh = 1.35 # select sites <thresh as being adjacent.
 
-as.data.frame(as.matrix(dist_mat)) %>% 
+adj_mat <- dist_mat
+# plot to check
+
+gs_check <- grid_sites %>% 
+  group_by(spot2021) %>% 
+  summarise(easting = mean(easting),
+            northing = mean(northing))
+
+thresh = 1.28 # select sites <thresh as being adjacent.
+
+adj <- as.data.frame(as.matrix(dist_mat)) %>% 
   mutate(spot = row.names(.)) %>% 
   gather(spot2, dist.km, -spot) %>% 
   filter(as.numeric(spot)<=31,
          as.numeric(spot2)<=31) %>%
-  mutate(adjacent = ifelse(dist.km<thresh, TRUE, FALSE)) %>% 
-  ggplot(aes(x = factor(spot, levels = unique(as.numeric(spot))), y = factor(spot2, levels = unique(as.numeric(spot2))), fill = adjacent)) +
-  geom_tile() + 
-  theme_bw()
+  mutate(adjacent = dist.km<thresh) 
 
+
+
+adj_check <- adj %>% 
+  filter(adjacent) %>% 
+  mutate(spot2021 = as.numeric(spot),
+         spot2 = as.numeric(spot2)) %>% 
+  left_join(gs_check) %>% 
+  left_join(gs_check %>% 
+              rename(spot2 = spot2021, east2 = easting, north2 = northing))
+
+# plot
+adj_check %>% 
+  ggplot()+
+  geom_spatvector(fill = "dodgerblue", data = myvatnshp)+
+  # geom_point(aes(easting, northing))+
+  geom_text(aes(easting, northing, label = spot2021))+
+  geom_segment(aes(x = easting, y = northing, xend = east2, yend = north2))+
+  coord_sf()+
+  guides(fill = "none")
+
+# check for many points
+adj_check %>% 
+  ggplot()+
+  facet_wrap(~spot) +
+  geom_spatvector(fill = "dodgerblue", data = myvatnshp)+
+  geom_point(aes(easting, northing))+
+  # geom_text(aes(easting, northing, label = spot2021))+
+  geom_segment(aes(x = easting, y = northing, xend = east2, yend = north2))+
+  # coord_sf()+
+  guides(fill = "none")
 
 # create adjacency matrix
-adj_mat <- dist_mat
-adj_mat[adj_mat<1.5] <- 1
+adj_mat[dist_mat<thresh] <-1
+adj_mat[dist_mat>thresh] <- 0
+adj_mat
 
-dist_mat
+
+#====Fit model====
+
+
+nh4mod <- brm(mvbind(ben_nh4, pel_nh4)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
+                car(adj_mat, gr = site),
+              data = nut,
+              data2 = list(adj_mat = adj_mat, spot2021 = nut$site),
+              iter = 500,
+              chains = 4,
+              cores = 4,
+              family = "hurdle_gamma")
 
 
 #######################################################
