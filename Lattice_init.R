@@ -6,6 +6,7 @@ library(terra)
 library(cowplot)
 library(scatterpie)
 library(lubridate)
+library(mgcv)
 library(brms)
 
 #====Set aesthetics====
@@ -68,6 +69,7 @@ bt <- readxl::read_xlsx(file, sheet = "benthotorch", na = "NA")
 zoops <-  readxl::read_xlsx(file, sheet = "zooplankton", na = "NA")
 esites <- read_csv("site_meta.csv", col_types =  ("cccddd"))
 nutrients <- readxl::read_xlsx(file, sheet = "nutrients", na = "NA")
+detectionlimits <- readxl::read_xlsx(file, sheet = "detection_limits", na = "NA")
 
 #=====combine data=====
 # pull midges
@@ -90,8 +92,23 @@ site_depth <- profiles %>%
 
 bothyears <- c("nh4", "no3", "po4") # select nutrients in both years
 
+# detection limits
+data.frame()
+
+
 nut1 <- nutrients %>% 
   mutate(analyte2 = ifelse(analyte == "nh4_nh3", "nh4", analyte),
+         layer_analyte = paste(layer, analyte2, sep = "_")) %>% 
+  filter(analyte2 %in% bothyears) %>%                  
+  select(spot, layer_analyte, mgl) %>%
+  spread(layer_analyte, mgl)
+
+div0 <- 2 # divide detection limit by this value to get lower for log transformation
+lognut1 <- nutrients %>% 
+  left_join(detectionlimits) %>% 
+  mutate(dl_cor = ifelse(!is.na(dil_cor), limit/dil_cor, limit),
+         mgl = log10(ifelse(mgl == 0, dl_cor/div0, mgl)),
+         analyte2 = ifelse(analyte == "nh4_nh3", "nh4", analyte),
          layer_analyte = paste(layer, analyte2, sep = "_")) %>% 
   filter(analyte2 %in% bothyears) %>%                  
   select(spot, layer_analyte, mgl) %>%
@@ -171,40 +188,105 @@ adj_mat
 
 
 #====Fit model====
+nh4formula <- bf(mvbind(ben_nh4, pel_nh4)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
+     car(adj_mat, gr = site)) + set_rescor(TRUE)
 
 start_time <- Sys.time()
-nh4mod <- brm(mvbind(ben_nh4, pel_nh4)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
+nh4mod <- brm(mvbind(ben_nh4, pel_nh4)~year + 
+                # depth + 
+                # east.std + north.std + 
+                # sed_type + chironominae + phyc +
                 car(adj_mat, gr = site),
               data = nut,
-              data2 = list(adj_mat = adj_mat, spot2021 = nut$site),
-              iter = 500,
+              data2 = list(adj_mat = adj_mat, site = nut$site),
+              iter = 20000,
               chains = 4,
               cores = 4,
-              family = "hurdle_gamma")
-Sys.time() - start_time
+              family = "hurdle_gamma",
+              control = list(adapt_delta = 0.99))
+nh4time <- Sys.time() - start_time
 
 start_time <- Sys.time()
 po4mod <- brm(mvbind(ben_po4, pel_po4)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
                 car(adj_mat, gr = site),
               data = nut,
               data2 = list(adj_mat = adj_mat, spot2021 = nut$site),
-              iter = 500,
+              iter = 20000,
               chains = 4,
               cores = 4,
-              family = "hurdle_gamma")
-Sys.time() - start_time
-
-
+              family = "hurdle_gamma",
+              control = list(adapt_delta = 0.99))
+po4time <- Sys.time() - start_time
+ 
 start_time <- Sys.time()
 no3mod <- brm(mvbind(ben_no3, pel_no3)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
                 car(adj_mat, gr = site),
               data = nut,
               data2 = list(adj_mat = adj_mat, spot2021 = nut$site),
-              iter = 500,
+              iter = 20000,
               chains = 4,
               cores = 4,
-              family = "hurdle_gamma")
-Sys.time() - start_time
+              family = "hurdle_gamma",
+              control = list(adapt_delta = 0.99))
+no3time <- Sys.time() - start_time
+
+nh4mod; po4mod; no3mod
+c(nh4time, po4time, no3time)
+
+
+####Frequentist approach####
+nutlong <- nut %>% 
+  gather(layer_an, conc, contains("ben"), contains("pel")) %>% 
+  separate(layer_an, sep= "_", into  = c("layer", "analyte")) %>% 
+  mutate(layer = as.factor(layer),
+         year = as.factor(year),
+         sed_type = as.factor(sed_type))
+
+nutlong %>% 
+  mutate(ben = ifelse(layer == "ben", 1, 0),
+         yr2022 = ifelse(year == 2022, 1, 0)) %>% 
+  select(east.std, north.std, depth, chironominae, phyc, ben, yr2022) %>% 
+  unique() %>% 
+  filter(!is.na(chironominae)) %>% 
+  cor(method = "spearman")
+
+# mostly not worried about multicolinearity, except for potential year 
+
+model.matrix(nh4mod)
+
+
+library(glmmTMB)
+library(DHARMa)
+
+nh4dat <- nutlong %>% filter(analyte == "nh4")
+nh4tmb <- glmmTMB(conc ~ 1 + 
+          (1|site),
+          ziformula = ~1,
+        family = ziGamma,
+        data = nh4dat)
+
+plot(simulateResiduals(po4tmb))
+
+no3dat <- nutlong %>% filter(analyte == "no3")
+no3tmb <- glmmTMB(conc ~layer + year + 
+                    depth + sed_type + 
+                    east.std + north.std + 
+                    (1|site),
+                  ziformula = ~1,
+                  family = ziGamma,
+                  data = no3dat)
+
+po4dat <- nutlong %>% filter(analyte == "po4")
+po4tmb <- glmmTMB(conc ~layer + year + 
+                    depth + sed_type + 
+                    east.std + north.std + 
+                    (1|site),
+                  ziformula = ~1,
+                  family = ziGamma,
+                  data = po4dat)
+
+
+library(vegan)
 
 
 #######################################################
