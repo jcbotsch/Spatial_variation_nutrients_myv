@@ -8,6 +8,7 @@ library(scatterpie)
 library(lubridate)
 library(mgcv)
 library(brms)
+library(ape)
 
 #====Set aesthetics====
 theme_set(  theme_bw()+
@@ -235,6 +236,7 @@ c(nh4time, po4time, no3time)
 
 
 ####Frequentist approach####
+
 nutlong <- nut %>% 
   gather(layer_an, conc, contains("ben"), contains("pel")) %>% 
   separate(layer_an, sep= "_", into  = c("layer", "analyte")) %>% 
@@ -285,8 +287,70 @@ po4tmb <- glmmTMB(conc ~layer + year +
                   family = ziGamma,
                   data = po4dat)
 
+# simple statistics
 
-library(vegan)
+sites21 <- sites %>% filter(year == 2021)
+sites22 <- sites %>% filter(year == 2022)
+nut21 <- sites21 %>% left_join(nut1)
+nut22 <- sites22 %>% left_join(nut1)
+
+
+getMoran.I <- function(sitedata, variable, returnmat =F ){
+  distmat <- as.matrix(dist(cbind(sitedata$easting, sitedata$northing)))
+  distmat.inv <- 1/distmat
+  diag(distmat.inv) <- 0
+  
+  # print to check
+  if(returnmat){
+    return(list(distmat.inv <- distmat.inv, Moran = Moran.I(variable, distmat.inv)))
+    
+  }
+  return(Moran = Moran.I(variable, distmat.inv))
+  
+}
+
+yearmorans <- function(data){
+  out <- list()
+  for(i in 2:ncol(nut1)){
+    response <- data %>% 
+      pull(colnames(nut1[i]))
+    if(length(unique(response))==1){
+      NA
+    }else{
+      out[[i-1]] <- getMoran.I(data, response)
+      names(out)[[i-1]] <- colnames(nut1[i])
+    }
+  }
+  return(out)
+}
+
+yearmorans(nut21)
+yearmorans(nut22)
+
+
+morans2021 <- list()
+for(i in 2:ncol(nut1)){
+  response <- nut21 %>% 
+    pull(colnames(nut1[i]))
+  morans2021[[i-1]] <- getMoran.I(nut21, response)
+  names(morans2021)[[i-1]] <- colnames(nut1[i])
+}
+
+
+nutlong %>% 
+  select(year, analyte, conc, site, layer) %>% 
+  mutate(year = paste0("yr", year)) %>% 
+  spread(year, conc) %>% 
+  group_by(analyte, layer) %>%
+  summarise(cor = cor(yr2022, yr2021, method = "spearman"))
+  
+
+nutlong %>% 
+  select(year, analyte, conc, site, layer) %>% 
+  spread(layer, conc) %>% 
+  group_by(analyte, year) %>%
+  summarise(cor = cor(ben, pel, method = "spearman"))
+
 
 
 #######################################################
