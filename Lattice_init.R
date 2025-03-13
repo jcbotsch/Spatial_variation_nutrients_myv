@@ -78,11 +78,17 @@ midges <- cc %>%
   mutate(chironominae = (chiro + tanyt)/fract_count) %>% 
   select(spot, chironominae)
 
+summary(midges)
+sd(midges$chironominae, na.rm = TRUE)/sqrt(length(midges$chironominae))
+
 # pull probes
 pel_algae <- turner %>% 
   group_by(spot) %>% 
   summarise(chl = mean(chl),
             phyc = mean(phyc))
+
+pel_algae %>% 
+  filter()
 
 # pull data from profiles
 site_depth <- profiles %>% 
@@ -119,14 +125,24 @@ lognut1 <- nutrients %>%
 # prep site information and join
 sites <- grid_sites %>% 
   mutate(east.std = easting/1000 - min(easting/1000), #km distance from most western site
-         north.std = northing/1000 - min(northing/1000)) %>% # km distance from most southern site
-  select(site = spot2021, spot, year, sed_type, east.std, north.std, easting, northing)
+         north.std = northing/1000 - min(northing/1000), # km distance from most southern site
+         basin = ifelse(spot2021 %in% c(21:23), "north", "south")) %>% 
+  select(site = spot2021, spot, year, sed_type, east.std, north.std, easting, northing, basin)
+
+sites2 <- sites %>% 
+  group_by(site) %>% 
+  summarise(northing = mean(northing),
+            easting = mean(easting))
 
 nut <- sites %>% 
   full_join(site_depth) %>% 
   full_join(nut1) %>% 
   full_join(midges) %>% 
-  full_join(pel_algae)
+  full_join(pel_algae) %>% 
+  mutate(site = as.character(site),
+         spot = as.character(spot)) %>% 
+  filter(!is.na(chironominae))
+
 
 #====create adjacency matrix====
 dist_mat <- as.matrix(dist(cbind(nut$northing, nut$easting), diag = TRUE, upper = TRUE)/1000)
@@ -134,7 +150,12 @@ dist_mat <- as.matrix(dist(cbind(nut$northing, nut$easting), diag = TRUE, upper 
 row.names(dist_mat) <- nut$spot
 colnames(dist_mat) <- nut$spot
 
-adj_mat <- dist_mat
+dist_mat2 <- as.matrix(dist(cbind(sites2$northing, sites2$easting), diag = TRUE, upper = TRUE)/1000)
+
+row.names(dist_mat2) <- sites2$site
+colnames(dist_mat2) <- sites2$site
+
+adj_mat <- dist_mat2
 # plot to check
 
 gs_check <- grid_sites %>% 
@@ -144,29 +165,27 @@ gs_check <- grid_sites %>%
 
 thresh = 1.28 # select sites <thresh as being adjacent.
 
-adj <- as.data.frame(as.matrix(dist_mat)) %>% 
-  mutate(spot = row.names(.)) %>% 
-  gather(spot2, dist.km, -spot) %>% 
-  filter(as.numeric(spot)<=31,
-         as.numeric(spot2)<=31) %>%
+adj <- as.data.frame(as.matrix(dist_mat2)) %>% 
+  mutate(site = row.names(.)) %>% 
+  gather(site2, dist.km, -site) %>% 
   mutate(adjacent = dist.km<thresh) 
 
 
 
 adj_check <- adj %>% 
   filter(adjacent) %>% 
-  mutate(spot2021 = as.numeric(spot),
-         spot2 = as.numeric(spot2)) %>% 
-  left_join(gs_check) %>% 
-  left_join(gs_check %>% 
-              rename(spot2 = spot2021, east2 = easting, north2 = northing))
+  mutate(site = as.numeric(site),
+         site2 = as.numeric(site2)) %>% 
+  left_join(sites2) %>% 
+  left_join(sites2 %>% 
+              rename(site2 = site, east2 = easting, north2 = northing))
 
 # plot
 adj_check %>% 
   ggplot()+
   geom_spatvector(fill = "dodgerblue", data = myvatnshp)+
   # geom_point(aes(easting, northing))+
-  geom_text(aes(easting, northing, label = spot2021))+
+  geom_text(aes(easting, northing, label = site))+
   geom_segment(aes(x = easting, y = northing, xend = east2, yend = north2))+
   coord_sf()+
   guides(fill = "none")
@@ -174,7 +193,7 @@ adj_check %>%
 # check for many points
 adj_check %>% 
   ggplot()+
-  facet_wrap(~spot) +
+  facet_wrap(~site) +
   geom_spatvector(fill = "dodgerblue", data = myvatnshp)+
   geom_point(aes(easting, northing))+
   # geom_text(aes(easting, northing, label = spot2021))+
@@ -183,8 +202,8 @@ adj_check %>%
   guides(fill = "none")
 
 # create adjacency matrix
-adj_mat[dist_mat<thresh] <-1
-adj_mat[dist_mat>thresh] <- 0
+adj_mat[dist_mat2<thresh] <-1
+adj_mat[dist_mat2>thresh] <- 0
 adj_mat
 
 
@@ -193,13 +212,11 @@ nh4formula <- bf(mvbind(ben_nh4, pel_nh4)~year + depth + east.std + north.std + 
      car(adj_mat, gr = site)) + set_rescor(TRUE)
 
 start_time <- Sys.time()
-nh4mod <- brm(mvbind(ben_nh4, pel_nh4)~year + 
-                # depth + 
-                # east.std + north.std + 
-                # sed_type + chironominae + phyc +
-                car(adj_mat, gr = site),
+nh4mod <- brm(ben_nh4 ~ year + 
+                depth +
+                east.std + north.std +
+                sed_type + phyc,
               data = nut,
-              data2 = list(adj_mat = adj_mat, site = nut$site),
               iter = 20000,
               chains = 4,
               cores = 4,
@@ -207,11 +224,15 @@ nh4mod <- brm(mvbind(ben_nh4, pel_nh4)~year +
               control = list(adapt_delta = 0.99))
 nh4time <- Sys.time() - start_time
 
+pp_check(nh4mod, prefix = "ppd") 
+
 start_time <- Sys.time()
-po4mod <- brm(mvbind(ben_po4, pel_po4)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
-                car(adj_mat, gr = site),
+po4mod <- brm(ben_po4 ~ year + 
+                depth +
+                east.std + north.std +
+                sed_type + phyc +
+                (1|site),
               data = nut,
-              data2 = list(adj_mat = adj_mat, spot2021 = nut$site),
               iter = 20000,
               chains = 4,
               cores = 4,
@@ -219,6 +240,19 @@ po4mod <- brm(mvbind(ben_po4, pel_po4)~year + depth + east.std + north.std + sed
               control = list(adapt_delta = 0.99))
 po4time <- Sys.time() - start_time
  
+
+
+ppo4mod <- brm(pel_po4 ~ year + 
+        
+                 car(adj_mat, gr = site),
+              data = nut,
+              data2 = list(adj_mat = adj_mat, spot2021 = nut$site),
+              iter = 20000,
+              chains = 4,
+              cores = 4,
+              family = "hurdle_gamma",
+              control = list(adapt_delta = 0.99))
+
 start_time <- Sys.time()
 no3mod <- brm(mvbind(ben_no3, pel_no3)~year + depth + east.std + north.std + sed_type + chironominae + phyc +
                 car(adj_mat, gr = site),
@@ -236,13 +270,58 @@ c(nh4time, po4time, no3time)
 
 
 ####Frequentist approach####
+library(glmmTMB)
+library(DHARMa)
+library(lme4)
 
-nutlong <- nut %>% 
-  gather(layer_an, conc, contains("ben"), contains("pel")) %>% 
-  separate(layer_an, sep= "_", into  = c("layer", "analyte")) %>% 
-  mutate(layer = as.factor(layer),
-         year = as.factor(year),
-         sed_type = as.factor(sed_type))
+nh4_freq <- lm(log10(ben_nh4 + 5e-4) ~ year + 
+          depth +
+          # east.std + north.std +
+            sed_type  
+          ,
+          # family = ziGamma(),
+        # ziformula = ~1,
+        data = nut)
+nh4_freq <- gls(log10(ben_nh4 + 5e-4) ~ year + 
+                 depth + 
+                  phyc +
+                 east.std + basin +
+                 sed_type + chironominae, 
+                correlation = corExp(form = ~easting + northing| year),
+               data = nut)
+
+
+summary(nh4_freq)
+plot(nh4_freq)
+qqnorm(residuals(nh4_freq, type = "pearson"))
+qqline(residuals(nh4_freq, type = "pearson"))
+  
+
+po4_freq <- gls(log10(ben_po4 + 5e-4) ~ year + 
+                  depth + 
+                  phyc + 
+                  east.std + basin +
+                  sed_type + chironominae, 
+                correlation = corExp(form = ~easting + northing| year),
+                data = nut)
+summary(po4_freq)
+plot(po4_freq)
+qqnorm(residuals(po4_freq, type = "pearson"))
+qqline(residuals(po4_freq, type = "pearson"))
+
+
+ppo4_freq <- gls(log10(pel_po4 + 5e-4) ~ year + 
+                  depth + 
+                   phyc +
+                  east.std + basin +
+                  sed_type + chironominae, 
+                correlation = corExp(form = ~easting + northing| year),
+                data = nut)
+summary(ppo4_freq)
+plot(ppo4_freq)
+qqnorm(residuals(ppo4_freq, type = "pearson"))
+qqline(residuals(ppo4_freq, type = "pearson"))
+
 
 nutlong %>% 
   mutate(ben = ifelse(layer == "ben", 1, 0),
@@ -257,17 +336,21 @@ nutlong %>%
 model.matrix(nh4mod)
 
 
-library(glmmTMB)
-library(DHARMa)
 
 nh4dat <- nutlong %>% filter(analyte == "nh4")
-nh4tmb <- glmmTMB(conc ~ 1 + 
-          (1|site),
+nh4tmb <- glmmTMB(conc ~ layer,
           ziformula = ~1,
         family = ziGamma,
         data = nh4dat)
 
-plot(simulateResiduals(po4tmb))
+
+nh4bendat <- nutlong %>% filter(analyte == "nh4", layer == "ben", year == "2021")
+nh4tmb <- glmmTMB(conc ~  ,
+                  ziformula = ~1,
+                  family = ziGamma,
+                  data = nh4bendat)
+
+plot(simulateResiduals(nh4tmb))
 
 no3dat <- nutlong %>% filter(analyte == "no3")
 no3tmb <- glmmTMB(conc ~layer + year + 
@@ -521,7 +604,7 @@ limno %>%
   ggplot()+
   geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
-  geom_point(aes(easting, northing, color = depth))+
+  geom_point(aes(easting, northing, color = depth), shape = 16)+
   facet_wrap(~lubridate::year(sampledate))+
   coord_sf()+
   guides(fill = "none")+
@@ -565,7 +648,11 @@ limno %>%
   ggplot(aes(depth))+
   geom_histogram(center = TRUE)
 
-
+limno %>% 
+  mutate(secchi_dn = as.numeric(secchi_dn),
+         secchi_dn = ifelse(is.na(secchi_dn), 4, secchi_dn)) %>% 
+  group_by(year) %>% 
+  summarise(mean_se = median(secchi_dn))
 
 
 #secchi
@@ -626,7 +713,7 @@ ggpreview(last_plot(), dpi = 650, width = 2, height = 2, units = "in")
 
 #oxygen at benthos and surface
 limno %>% 
-  filter(sampledepth == 0) %>% 
+  filter(sampledepth == 0.5) %>% 
   ggplot()+
   geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   # geom_point(aes(easting, northing))+
@@ -976,23 +1063,22 @@ nut %>%
          out = map(fit, ~broom::tidy(car::Anova(.x)))) %>% 
   unnest(out)
 
-nut %>% 
-  filter(analyte2 %in% bothyears) %>% 
-  select(analyte2, spot2021, layer, year, z) %>% 
-  spread(year, z) %>% 
-  ggplot(aes(x = `2021`, y = `2022`))+
-  facet_wrap(~paste(layer,analyte2), scales = "free") + 
-  geom_point()+
-  theme_bw()
+
 
 nut %>% 
   filter(analyte2 %in% bothyears) %>% 
-  select(analyte2, spot2021, layer, year, mgLlog10) %>% 
-  spread(year, mgLlog10) %>% 
+  select(analyte2, spot2021, layer, year, mgl) %>% 
+  spread(year, mgl) %>% 
   ggplot(aes(x = `2021`, y = `2022`))+
   facet_wrap(~paste(layer,analyte2), scales = "free") + 
   geom_point()+
-  theme_bw()
+  theme_bw()+
+  theme(panel.grid = element_line(color = "white"),
+        axis.ticks = element_blank(),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "lines"),
+        legend.title = element_text(vjust = 1),
+        plot.title = element_text(hjust = 0.5))
 
 # how correlated are nutrient concentratoins
 nut %>% 
@@ -1002,8 +1088,13 @@ nut %>%
   ggplot(aes(x = ben, y = pel, color = factor(year)))+
   facet_wrap(~analyte2, scales = "free") + 
   geom_point()+
-  geom_abline(slope = 1) + 
-  theme_bw()
+  geom_path(aes(group = paste(spot2021)), col = "gray", alpha = 0.2) + 
+  theme_bw()+
+  theme(panel.grid = element_line(color = "white"),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "lines"),
+        legend.title = element_text(vjust = 1),
+        plot.title = element_text(hjust = 0.5))
 
 # plot concentrations
 nut %>% 
@@ -1037,6 +1128,66 @@ nut %>%
   scale_color_viridis_c()
 
 # plot wider
+n21 <- nut %>% 
+  mutate(layer = ifelse(layer == "ben", "Benthic", "Pelagic")) %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  mutate(analyte2 = toupper(analyte2),
+         analyte2 = paste0(substr(analyte2, 1,2), "[", substr(analyte2,3,3), "]")) %>% 
+  ggplot()+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
+  geom_point(aes(easting, northing, color = log10(mgl)),  data = . %>% filter(year == 2021))+
+  coord_sf()+
+  facet_grid(fct_rev(layer)~analyte2, switch = "y", labeller = label_parsed)+
+  guides(fill = "none")+
+  labs(color = expression(~log[10](mg/L)),
+       title = "August 2021")+
+  theme_bw()+
+  theme(panel.grid = element_line(color = "white"),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "top",
+        legend.key.height = unit(0.5, "lines"),
+        legend.title = element_text(vjust = 1),
+        plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis_c(limits = c(min(log10({nut %>% filter(mgl>0)}$mgl), na.rm = T), max(log10(nut$mgl), na.rm = T)))
+                        
+
+n22.2 <- nut %>% 
+  mutate(layer = ifelse(layer == "ben", "Benthic", "Pelagic")) %>% 
+  filter(analyte2 %in% bothyears) %>% 
+  mutate(analyte2 = toupper(analyte2),
+         analyte2 = paste0(substr(analyte2, 1,2), "[", substr(analyte2,3,3), "]")) %>% 
+  ggplot()+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
+  geom_point(aes(easting, northing, color = log10(mgl)),  data = . %>% filter(year == 2022))+
+  coord_sf()+
+  facet_grid(fct_rev(layer)~analyte2, switch = "y", labeller = label_parsed)+
+  guides(fill = "none")+
+  labs(color = expression(~log[10](mg/L)),
+       title = "June 2022")+
+  theme_bw()+
+  theme(panel.grid = element_line(color = "white"),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "bottom",
+        legend.key.height = unit(0.5, "lines"),
+        legend.title = element_text(vjust = 1),
+        plot.title = element_text(hjust = 0.5)) +
+  scale_color_viridis_c(limits = c(min(log10({nut %>% filter(mgl>0)}$mgl), na.rm = T), max(log10(nut$mgl), na.rm = T)))
+
+plot_grid(nz21, nz22)
+
+long <- plot_grid(n21, n22.2, ncol = 1)
+
+ggpreview(plot = long, width = 84, height= 200, units = "mm", dpi = 650)
+
+
+ggsave(plot = long, width = 84, height= 200, units = "mm", dpi = 650, filename = "spat_nuts_fig2.jpeg")
+
+
+# plot conc
 nz21 <- nut %>% 
   filter(analyte2 %in% bothyears) %>% 
   ggplot()+
@@ -2027,6 +2178,9 @@ chiroplot <- cc %>%
        color = element_blank())
 
 
+plot_grid(tanytplot, chiroplot, ncol =1, align = "v")
+ggpreview(plot = last_plot(), width = 6, height = 4, units = "in", dpi = 650)
+
 
 orthoplot <- cc %>% 
   ggplot()+
@@ -2103,9 +2257,9 @@ ggpreview(plot = last_plot(), width = 6, height = 4, units = "in", dpi = 650)
 plot_grid(tanytplot, chiroplot, orthoplot, tanypplot, tubifexplot)
 
 
-midgecomm <-  cc %>% 
+chircomm <-  cc %>% 
   select(sampledate, easting, northing, tanyt, chiro, ortho, tanyp) %>% 
-  mutate(total = tanyt + chiro + ortho+ tanyp) %>% 
+  mutate(total = tanyt + chiro) %>% 
   rename(Chironomini = chiro,
          Tanytarsini = tanyt,
          Orthocladiinae = ortho,
@@ -2125,29 +2279,29 @@ cc %>%
   ggplot(aes(x = `2021`, y = `2022`))+
   facet_wrap(~taxon, scales = "free")+
   geom_point(aes(color = log10(n)), size = 3)+
-  scale_color_viridis_c()
+  scale_color_viridis_c() + 
+  theme_bw()
 
 
 commplot <- ggplot()+
-  geom_polygon(aes(long, lat, group = piece), color = "black", alpha = 0.3, data = myvatnshp)+
+  geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
   theme(panel.grid = element_blank(),
         axis.text = element_blank(),
         axis.title = element_blank())+
-  geom_scatterpie(aes(x = easting, y = northing, r = total*100+1), legend_name = "taxa", cols = c("Tanytarsini", "Chironomini", "Orthocladiinae", "Tanypodinae"),  data = midgecomm, alpha = 0.8)+
-  geom_scatterpie_legend(midgecomm$total*100+1, x = 404500, 7272500, n = 3, labeller = function(x){round(x/100)})+
+  geom_point(aes(easting, northing), shape = 21, size = 0.1, color = "gray20", ,  data = chircomm %>% filter(total==0))+
+  geom_scatterpie(aes(x = easting, y = northing, r = total*100+10), legend_name = "taxa", cols = c("Tanytarsini", "Chironomini"),  data = chircomm, alpha = 0.8)+
+  geom_scatterpie_legend(chircomm$total*100+1, x = 404500, 7272500, n = 3, labeller = function(x){round(x/100)})+
   theme_bw()+
   facet_wrap(~year(sampledate))+
   theme(panel.grid = element_line(color = "white"),
         axis.text = element_blank(),
         axis.title = element_blank(),
+        legend.position = "bottom",
         axis.ticks = element_blank(),
-        legend.position = "none",
         plot.title = element_text(hjust = 0.5),
         legend.title = element_blank())+
   scale_fill_manual(values = c("Tanytarsini" = "#e7298a",
-                               "Chironomini" = "#1b9e77",
-                               "Orthocladiinae" = "#d95f02",
-                               "Tanypodinae" = "#7570b3"))+
+                               "Chironomini" = "#1b9e77"))+
   coord_sf()
 
 ggpreview(plot = commplot, width = 6, height = 4, units = "in", dpi = 650)
@@ -2193,12 +2347,12 @@ cc %>%
 cm %>%
   filter(species_name == "tt") %>% 
   ggplot()+
-  geom_histogram(aes(x = head_size), center = TRUE)+
+  geom_histogram(aes(x = head_size, fill = spot<32), center = TRUE)+
   geom_vline(xintercept = c(4.3, 7.3, 12, 19.5))
 
 cm %>%
   filter(species_name == "ch") %>% 
-  ggplot(aes(x = head_size))+
+  ggplot(aes(x = head_size, fill = spot<32))+
   geom_histogram(center = TRUE)+
   geom_vline(xintercept = c(7, 12, 25.5, 44))
 #im surprised there are any second instar chironomini (right on the edge of what we call first instar.)
@@ -2298,6 +2452,11 @@ turner.avg <- turner %>%
   summarise(chl = mean(chl),
             phyc = mean(phyc))
 
+turner.avg %>% 
+  group_by(year) %>% 
+  summarise(mean = mean(phyc),
+            se = sd(phyc)/sqrt(n()))
+
 turner_chl <- turner.avg %>% 
   ggplot()+
   geom_spatvector(fill = "dodgerblue", alpha = 0.2, data = myvatnshp)+
@@ -2324,7 +2483,7 @@ turner_phyc <- turner.avg %>%
   geom_point(aes(easting, northing, color = phyc))+
   coord_sf()+
   guides(fill = "none")+
-  facet_wrap(~year, nrow = 2)+
+  facet_wrap(~year, nrow = 1)+
   theme_bw()+
   theme(panel.grid = element_line(color = "white"),
         axis.text = element_blank(),
@@ -2335,9 +2494,10 @@ turner_phyc <- turner.avg %>%
 
   scale_color_viridis_c()+
   NULL
+ggpreview(turner_phyc, dpi = 650, width = 4, height = 2, units = "in")
 
 
-plot_grid(turner_chl, turner_phyc)
+plot_grid(turner_chl, turner_phyc, align= "h")
 ggpreview(last_plot(), dpi = 650, width = 4, height = 4, units = "in")
 
 turner.avg %>% 
